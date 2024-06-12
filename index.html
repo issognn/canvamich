@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recogiendo alimentos</title>
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: pink;
+    }
+
+    #container {
+        text-align: center;
+    }
+
+    canvas {
+        border: 1px solid black;
+    }
+</style>
+</head>
+<body>
+<div id="container">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+</div>
+
+<script>
+    var canvas = document.getElementById("gameCanvas");
+    var ctx = canvas.getContext("2d");
+
+    var personaje = {
+        x: canvas.width / 2 - 50, // Posición inicial en el centro horizontal del canvas
+        y: canvas.height - 100, // Posición inicial en la parte inferior del canvas
+        ancho: 150, // Aumenta el ancho del personaje
+        alto: 150, // Aumenta el alto del personaje
+        velocidad: 14,
+        imagen: new Image()
+    };
+
+    var alimentos = [];
+    var puntuacion = 0;
+    var alimentosPerdidos = 0; // Contador de alimentos perdidos
+    var juegoTerminado = false;
+    var tiempoRestante = 60; // Tiempo en segundos
+
+    personaje.imagen.src = "/per.png"; // Ruta de la imagen de tu personaje
+
+    function dibujar() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.drawImage(personaje.imagen, personaje.x, personaje.y, personaje.ancho, personaje.alto);
+
+        for (var i = 0; i < alimentos.length; i++) {
+            var alimento = alimentos[i];
+            ctx.drawImage(alimento.imagen, alimento.x, alimento.y, alimento.ancho, alimento.alto);
+        }
+
+        ctx.font = "20px Arial";
+        ctx.fillStyle = "black";
+        ctx.fillText("Puntuación: " + puntuacion, 20, 30);
+        ctx.fillText("Alimentos perdidos: " + alimentosPerdidos, 20, 60);
+        ctx.fillText("Tiempo restante: " + tiempoRestante + "s", 20, 90);
+
+        if (juegoTerminado) {
+            if (puntuacion >= 30) {
+                ctx.fillText("¡Has ganado! Has alcanzado una puntuación de 30.", canvas.width / 2 - 180, canvas.height / 2);
+            } else {
+                ctx.fillText("Juego terminado", canvas.width / 2 - 80, canvas.height / 2);
+            }
+        } else {
+            requestAnimationFrame(dibujar);
+        }
+    }
+
+    function actualizar() {
+        if (!juegoTerminado) {
+            generarAlimento();
+            for (var i = 0; i < alimentos.length; i++) {
+                var alimento = alimentos[i];
+                alimento.y += alimento.velocidad;
+
+                // Calcular la distancia entre los centros del personaje y el alimento
+                var distanciaX = personaje.x + personaje.ancho / 2 - (alimento.x + alimento.ancho / 2);
+                var distanciaY = personaje.y + personaje.alto / 2 - (alimento.y + alimento.alto / 2);
+                var distancia = Math.sqrt(distanciaX * distanciaX + distanciaY * distanciaY);
+
+                // Si la distancia es menor que la suma de los radios de los objetos, hay colisión
+                if (distancia < (personaje.ancho + alimento.ancho) / 2) {
+                    alimentos.splice(i, 1);
+                    i--;
+                    puntuacion++;
+                }
+
+                if (alimento.y > canvas.height) {
+                    alimentos.splice(i, 1);
+                    i--;
+
+                    // Si pierde 20 alimentos, el juego termina con derrota
+                    alimentosPerdidos++;
+                    if (alimentosPerdidos >= 20) {
+                        juegoTerminado = true;
+                        alert("Has perdido. Perdiste 20 alimentos.");
+                        break;
+                    }
+                }
+            }
+
+            // Si alcanza una puntuación de 30, el juego termina con victoria
+            if (puntuacion >= 25) {
+                juegoTerminado = true;
+                alert("¡Has ganado! Has alcanzado una puntuación de 30.");
+            }
+
+            setTimeout(actualizar, 1000 / 60);
+        }
+    }
+
+    function generarAlimento() {
+        if (Math.random() < 0.02) { // Ajusta la frecuencia de generación de alimentos
+            var tipo = Math.floor(Math.random() * 6); // 6 tipos de alimentos diferentes
+            var imagenSrc = "";
+
+            switch (tipo) {
+                case 0:
+                    imagenSrc = "/c1.png"; // Ruta de la imagen de la manzana
+                    break;
+                case 1:
+                    imagenSrc = "/c2.png"; // Ruta de la imagen de la banana
+                    break;
+                case 2:
+                    imagenSrc = "/c3-removebg-preview.png"; // Ruta de la imagen de la naranja
+                    break;
+                case 3:
+                    imagenSrc = "/c4-removebg-preview.png"; // Ruta de la imagen de otro alimento
+                    break;
+                case 4:
+                    imagenSrc = "/c5-removebg-preview.png"; // Ruta de la imagen de otro alimento
+                    break;
+                case 5:
+                    imagenSrc = "/c6-removebg-preview.png"; // Ruta de la imagen de otro alimento
+                    break;
+            }
+
+            var alimento = {
+                x: Math.random() * (canvas.width - 50),
+                y: -50,
+                ancho: 50,
+                alto: 50,
+                velocidad: Math.random() * 2 + 1, // Velocidad aleatoria entre 1 y 3
+                imagen: new Image()
+            };
+
+            alimento.imagen.src = imagenSrc;
+            alimentos.push(alimento);
+        }
+    }
+
+    function manejarTeclado(event) {
+        if (event.key === "ArrowLeft") {
+            personaje.x -= personaje.velocidad;
+        } else if (event.key === "ArrowRight") {
+            personaje.x += personaje.velocidad;
+        }
+
+        // Limitar el movimiento del personaje al canvas
+        personaje.x = Math.max(0, Math.min(personaje.x, canvas.width - personaje.ancho));
+    }
+
+    document.addEventListener("keydown", manejarTeclado);
+    dibujar();
+    actualizar();
+    setInterval(actualizarTiempo, 1000); // Actualizar el tiempo cada segundo
+
+    function actualizarTiempo() {
+        if (!juegoTerminado) {
+            tiempoRestante--;
+            if (tiempoRestante <= 0) {
+                juegoTerminado = true;
+                alert("¡Tiempo agotado! Has perdido.");
+            }
+        }
+    }
+</script>
+</body>
+</html>
+
